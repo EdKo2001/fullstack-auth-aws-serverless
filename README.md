@@ -1,46 +1,93 @@
-# Getting Started with Create React App
+# AuthFlow: Serverless Authentication Platform
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## 🚀 Key Features
 
-## Available Scripts
+- User Authentication
+  - Secure JWT-based registration/login
+  - Session management with localStorage
+- Profile Management
+  - Image upload/preview (S3 integration)
+  - Profile data updates (DynamoDB)
+- Cloud Infrastructure
+  - Auto-scaling serverless backend
+  - CI/CD pipelines (CodePipeline/CodeBuild)
+  - Infrastructure-as-Code (CloudFormation)
 
-In the project directory, you can run:
+## 🛠 Tech Stack
 
-### `npm start`
+**Frontend**  
+React 19 TypeScript Material-UI
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+**Backend**  
+Node.js 18 AWS Lambda API Gateway DynamoDB S3
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+**DevOps**  
+AWS CloudFormation CodePipeline CodeBuild CloudFront
 
-### `npm test`
+## ⚙️ Setup Guide
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### 1. Prerequisites
 
-### `npm run build`
+- AWS Account
+- Node.js 18.x & npm
+- Git
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### 2. Local Development
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+bash
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+# Clone repository
 
-### `npm run eject`
+git clone https://github.com/yourrepo/authflow.git
+cd authflow
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+# Install dependencies
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+npm install
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+# Start dev server
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+npm start
 
-## Learn More
+Access: http://localhost:3000
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### 3. Configuration
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+Set environment variables:
+
+env
+
+# Frontend .env
+
+REACT_APP_API_ENDPOINT=https://your-api-id.execute-api.region.amazonaws.com/prod
+REACT_APP_S3_BUCKET=authflow-profile-images
+
+## 🔄 Deployment Pipeline
+
+1. **Source Stage**: GitHub repo monitoring
+2. **Build Stage**:
+   - Frontend: npm run build + S3 upload
+   - Backend: Lambda function packaging
+3. **Deploy Stage**:
+   - CloudFormation stack updates
+   - Lambda function deployments
+
+## 🔒 Security Features
+
+- **Data Protection**
+  - AES-256 encryption (S3/DynamoDB)
+  - SSL/TLS everywhere
+- **Access Control**
+  - IAM least-privilege roles
+  - Cognito Identity Pools (optional)
+- **Credentials**
+  - bcrypt password hashing
+  - JWT expiration (1h access tokens)
+
+---
+
+**Note**: Before production deployment:
+
+1. Enable CloudFront distribution for frontend
+2. Configure WAF for API Gateway
+3. Set up CloudWatch monitoring alarms
