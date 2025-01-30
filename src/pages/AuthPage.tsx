@@ -15,6 +15,7 @@ import {
 } from "@mui/material";
 import { CloudUpload } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
+
 import { User } from "../types";
 
 interface AuthPageProps {
