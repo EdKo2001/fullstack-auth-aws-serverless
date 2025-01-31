@@ -1,0 +1,6 @@
+C:\Users\Osama\Source\Repos\fullstack-auth-aws-serverless\server\authapp\src\authapp\obj\Release\net8.0\AuthApp.csproj.AssemblyReference.cache
+C:\Users\Osama\Source\Repos\fullstack-auth-aws-serverless\server\authapp\src\authapp\obj\Release\net8.0\AuthApp.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Osama\Source\Repos\fullstack-auth-aws-serverless\server\authapp\src\authapp\obj\Release\net8.0\AuthApp.AssemblyInfoInputs.cache
+C:\Users\Osama\Source\Repos\fullstack-auth-aws-serverless\server\authapp\src\authapp\obj\Release\net8.0\AuthApp.AssemblyInfo.cs
+C:\Users\Osama\Source\Repos\fullstack-auth-aws-serverless\server\authapp\src\authapp\obj\Release\net8.0\AuthApp.csproj.CoreCompileInputs.cache
+C:\Users\Osama\Source\Repos\fullstack-auth-aws-serverless\server\authapp\src\authapp\obj\Release\net8.0\AuthApp.sourcelink.json
