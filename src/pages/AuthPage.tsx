@@ -12,6 +12,7 @@ import {
   TextField,
   Typography,
   Alert,
+  FormLabel,
 } from "@mui/material";
 import { CloudUpload } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
@@ -87,6 +88,22 @@ const AuthPage = ({ onLogin }: AuthPageProps) => {
     }
   };
 
+  const resetForm = () => {
+    setFormData({
+      email: "",
+      password: "",
+      name: "",
+      profileImage: null,
+    });
+    setPreview(undefined);
+    setError("");
+  };
+
+  const toggleAuthMode = () => {
+    setIsSignUp(!isSignUp);
+    resetForm();
+  };
+
   return (
     <Container component="main" maxWidth="xs">
       <Paper elevation={3} sx={{ p: 4, mt: 8, borderRadius: 2 }}>
@@ -120,6 +137,7 @@ const AuthPage = ({ onLogin }: AuthPageProps) => {
                     />
                   </Grid>
                   <Grid item xs={12}>
+                    <FormLabel component="legend">Profile Image</FormLabel>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                       <IconButton component="label">
                         <CloudUpload />
@@ -186,11 +204,7 @@ const AuthPage = ({ onLogin }: AuthPageProps) => {
               )}
             </Button>
 
-            <Button
-              fullWidth
-              variant="outlined"
-              onClick={() => setIsSignUp(!isSignUp)}
-            >
+            <Button fullWidth variant="outlined" onClick={toggleAuthMode}>
               {isSignUp
                 ? "Already have an account? Login"
                 : "Need an account? Sign Up"}

@@ -34,7 +34,15 @@ AWS CloudFormation CodePipeline CodeBuild CloudFront
 
 ### 2. Local Development
 
-bash
+```bash
+# Install dependencies
+npm install
+
+# Start dev server
+npm start
+```
+
+Access: http://localhost:3000
 
 # Clone repository
 
