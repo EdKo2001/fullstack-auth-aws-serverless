@@ -66,34 +66,37 @@ const AuthPage = ({ onLogin }: AuthPageProps) => {
     setLoading(true);
 
     try {
-      const fileType = formData.profileImage?.type || "image/jpeg";
-      const payload = {
-        email: formData.email,
-        password: formData.password,
-        name: formData.name,
-        fileType,
-      };
+      if (isSignUp) {
+        const fileType = formData.profileImage?.type || "image/jpeg";
+        const response = await api.post("/signup", {
+          ...formData,
+          fileType,
+        });
+        const { token, user, presignedUrl } = response.data;
 
-      // 1. Register user and get presigned URL
-      const response = await api.post("/signup", payload);
-      const { token, user, presignedUrl } = response.data;
-
-      // 2. Upload image to S3 if exists
-      if (formData.profileImage && presignedUrl) {
-        await axios
-          .put(presignedUrl, formData.profileImage, {
-            headers: { "Content-Type": fileType },
-          })
-          .catch((err) => console.log(err));
+        if (formData.profileImage && presignedUrl) {
+          await axios
+            .put(presignedUrl, formData.profileImage, {
+              headers: { "Content-Type": fileType },
+            })
+            .catch((err) => console.error(err));
+        }
+        onLogin(token, user);
+      } else {
+        const response = await api.post("/login", {
+          email: formData.email,
+          password: formData.password,
+        });
+        const { token, user } = response.data;
+        onLogin(token, user);
       }
-
-      onLogin(token, user);
       navigate("/profile");
     } catch (error) {
+      console.error(error);
       if (axios.isAxiosError(error)) {
-        setError(error.response?.data?.message || "Signup failed");
+        setError(error.response?.data?.message || "Authentication failed");
       } else {
-        setError("Signup failed");
+        setError("Authentication failed");
       }
     } finally {
       setLoading(false);
