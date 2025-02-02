@@ -18,6 +18,8 @@ import { CloudUpload } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
 
 import { User } from "../types";
+import { api } from "../utils"; // Assumes you have an Axios instance configured
+import axios from "axios";
 
 interface AuthPageProps {
   onLogin: (token: string, user: User) => void;
@@ -64,15 +66,35 @@ const AuthPage = ({ onLogin }: AuthPageProps) => {
     setLoading(true);
 
     try {
-      const response = await mockAuthApi(isSignUp, formData);
-      if (response.success) {
-        onLogin(response.token, response.user);
-        navigate("/profile");
-      } else {
-        setError(response.message);
+      const fileType = formData.profileImage?.type || "image/jpeg";
+      const payload = {
+        email: formData.email,
+        password: formData.password,
+        name: formData.name,
+        fileType,
+      };
+
+      // 1. Register user and get presigned URL
+      const response = await api.post("/signup", payload);
+      const { token, user, presignedUrl } = response.data;
+
+      // 2. Upload image to S3 if exists
+      if (formData.profileImage && presignedUrl) {
+        await axios
+          .put(presignedUrl, formData.profileImage, {
+            headers: { "Content-Type": fileType },
+          })
+          .catch((err) => console.log(err));
       }
-    } catch (err) {
-      setError("An error occurred. Please try again.");
+
+      onLogin(token, user);
+      navigate("/profile");
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        setError(error.response?.data?.message || "Signup failed");
+      } else {
+        setError("Signup failed");
+      }
     } finally {
       setLoading(false);
     }
@@ -114,15 +136,15 @@ const AuthPage = ({ onLogin }: AuthPageProps) => {
             alignItems: "center",
           }}
         >
-          <Typography component="h1" variant="h5">
+          <Typography
+            component="h1"
+            variant="h5"
+            sx={{ fontWeight: 600, mb: 2 }}
+          >
             {isSignUp ? "Sign Up" : "Login"}
           </Typography>
 
-          <Box
-            component="form"
-            onSubmit={handleSubmit}
-            sx={{ mt: 3, width: "100%" }}
-          >
+          <Box component="form" onSubmit={handleSubmit} sx={{ width: "100%" }}>
             <Grid container spacing={2}>
               {isSignUp && (
                 <>
@@ -137,7 +159,12 @@ const AuthPage = ({ onLogin }: AuthPageProps) => {
                     />
                   </Grid>
                   <Grid item xs={12}>
-                    <FormLabel component="legend">Profile Image</FormLabel>
+                    <FormLabel
+                      component="legend"
+                      sx={{ fontSize: 14, fontWeight: 600 }}
+                    >
+                      Profile Image
+                    </FormLabel>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                       <IconButton component="label">
                         <CloudUpload />
@@ -167,6 +194,7 @@ const AuthPage = ({ onLogin }: AuthPageProps) => {
                   value={formData.email}
                   onChange={handleInputChange}
                   required
+                  sx={{ marginBottom: 2 }}
                 />
               </Grid>
               <Grid item xs={12}>
@@ -183,7 +211,7 @@ const AuthPage = ({ onLogin }: AuthPageProps) => {
             </Grid>
 
             {error && (
-              <Alert severity="error" sx={{ mt: 2 }}>
+              <Alert severity="error" sx={{ mt: 2, borderRadius: 1 }}>
                 {error}
               </Alert>
             )}
@@ -192,7 +220,14 @@ const AuthPage = ({ onLogin }: AuthPageProps) => {
               fullWidth
               type="submit"
               variant="contained"
-              sx={{ mt: 3, mb: 2 }}
+              sx={{
+                mt: 3,
+                mb: 2,
+                padding: 1.5,
+                borderRadius: 2,
+                backgroundColor: "#1976d2",
+                "&:hover": { backgroundColor: "#1565c0" },
+              }}
               disabled={loading}
             >
               {loading ? (
@@ -204,7 +239,18 @@ const AuthPage = ({ onLogin }: AuthPageProps) => {
               )}
             </Button>
 
-            <Button fullWidth variant="outlined" onClick={toggleAuthMode}>
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={toggleAuthMode}
+              sx={{
+                mt: 1,
+                padding: 1.5,
+                borderRadius: 2,
+                borderColor: "#1976d2",
+                "&:hover": { borderColor: "#1565c0", color: "#1565c0" },
+              }}
+            >
               {isSignUp
                 ? "Already have an account? Login"
                 : "Need an account? Sign Up"}
@@ -214,38 +260,6 @@ const AuthPage = ({ onLogin }: AuthPageProps) => {
       </Paper>
     </Container>
   );
-};
-
-type AuthFormData = {
-  email: string;
-  password: string;
-  name: string;
-  profileImage: File | null;
-};
-
-const mockAuthApi = async (isSignUp: boolean, data: AuthFormData) => {
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-
-  if (isSignUp) {
-    return {
-      success: true,
-      token: "mock-jwt-token",
-      message: "Account created successfully.",
-      user: {
-        email: data.email,
-        name: data.name,
-        profileImage: data.profileImage
-          ? URL.createObjectURL(data.profileImage)
-          : undefined,
-      },
-    };
-  }
-  return {
-    success: true,
-    token: "mock-jwt-token",
-    message: "Logged in successfully.",
-    user: { email: data.email, name: "Test User" },
-  };
 };
 
 export default AuthPage;

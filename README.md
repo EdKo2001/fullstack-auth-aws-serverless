@@ -68,7 +68,6 @@ env
 # Frontend .env
 
 REACT_APP_API_ENDPOINT=https://your-api-id.execute-api.region.amazonaws.com/prod
-REACT_APP_S3_BUCKET=authflow-profile-images
 
 ## 🔄 Deployment Pipeline
 
