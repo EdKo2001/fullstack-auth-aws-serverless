@@ -1,5 +1,9 @@
 version: 0.2
 
+cache:
+  paths:
+    - client/node_modules/**/* # Cache the node_modules folder in the client directory
+
 phases:
   install:
     commands:
@@ -8,6 +12,7 @@ phases:
   build:
     commands:
       - npm run build # Build the project inside the client directory
+
 artifacts:
   files:
     - "**/*"
