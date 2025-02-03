@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
@@ -18,7 +18,6 @@ import { CloudUpload, Logout } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
 
 import { api } from "../utils";
-
 import { User } from "../types";
 
 const VisuallyHiddenInput = styled("input")({
@@ -51,6 +50,28 @@ const ProfilePage = ({
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  const handleFetchImage = async () => {
+    if (!token || !user) return;
+
+    setLoading(true);
+    try {
+      const response = await api.get("/getProfileImage", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const imageSrc = `data:${response.headers["Content-Type"]};base64,${response.data}`;
+      onProfileUpdate({ ...user, profileImage: imageSrc });
+    } catch (error) {
+      console.error("Failed to fetch image:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    handleFetchImage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const file = e.target.files[0];
@@ -81,6 +102,7 @@ const ProfilePage = ({
 
       const updatedUser = { ...user, profileImage };
       onProfileUpdate(updatedUser);
+      handleFetchImage();
       setPreview(undefined);
       setSelectedFile(null);
     } catch (error) {
