@@ -11,4 +11,4 @@ phases:
 artifacts:
   files:
     - "**/*"
-  base-directory: build # Directory with the output files (e.g., React app)
+  base-directory: client/build # Directory with the output files (e.g., React app)
