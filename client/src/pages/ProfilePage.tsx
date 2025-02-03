@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
+import axios from "axios";
 import {
   Avatar,
   Box,
@@ -16,6 +16,8 @@ import {
 } from "@mui/material";
 import { CloudUpload, Logout } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
+
+import { api } from "../utils";
 
 import { User } from "../types";
 
@@ -33,10 +35,17 @@ const VisuallyHiddenInput = styled("input")({
 
 interface ProfilePageProps {
   user: User;
+  token: string;
   onLogout: () => void;
+  onProfileUpdate: (updatedUser: User) => void;
 }
 
-const ProfilePage = ({ user, onLogout }: ProfilePageProps) => {
+const ProfilePage = ({
+  user,
+  token,
+  onLogout,
+  onProfileUpdate,
+}: ProfilePageProps) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string>();
   const [loading, setLoading] = useState(false);
@@ -56,12 +65,23 @@ const ProfilePage = ({ user, onLogout }: ProfilePageProps) => {
   };
 
   const handleUpload = async () => {
-    if (!selectedFile) return;
+    if (!selectedFile || !token || !user) return;
     setLoading(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setPreview(URL.createObjectURL(selectedFile));
+      const response = await api.post("/updateProfileImage", {
+        fileType: selectedFile.type,
+      });
+
+      const { presignedUrl, profileImage } = response.data;
+
+      await axios.put(presignedUrl, selectedFile, {
+        headers: { "Content-Type": selectedFile.type },
+      });
+
+      const updatedUser = { ...user, profileImage };
+      onProfileUpdate(updatedUser);
+      setPreview(undefined);
       setSelectedFile(null);
     } catch (error) {
       console.error("Upload failed:", error);
@@ -99,7 +119,7 @@ const ProfilePage = ({ user, onLogout }: ProfilePageProps) => {
                 }}
               >
                 <Avatar
-                  src={preview || user.profileImage || "/default-avatar.png"}
+                  src={preview || user?.profileImage || "/default-avatar.png"}
                   sx={{ width: 200, height: 200, mb: 2 }}
                 />
 
@@ -137,14 +157,14 @@ const ProfilePage = ({ user, onLogout }: ProfilePageProps) => {
                 <ListItem>
                   <ListItemText
                     primary="Name"
-                    secondary={user.name}
+                    secondary={user?.name}
                     secondaryTypographyProps={{ variant: "h6" }}
                   />
                 </ListItem>
                 <ListItem>
                   <ListItemText
                     primary="Email"
-                    secondary={user.email}
+                    secondary={user?.email}
                     secondaryTypographyProps={{ variant: "h6" }}
                   />
                 </ListItem>

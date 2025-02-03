@@ -16,12 +16,11 @@ const s3 = new S3Client({ region: "us-east-2" });
 const SECRET_KEY = process.env.JWT_SECRET;
 const S3_BUCKET = process.env.S3_BUCKET_NAME;
 
-const generatePresignedUrl = async (filename, fileType) => {
+export const generatePresignedUrl = async (filename, fileType) => {
   const command = new PutObjectCommand({
     Bucket: S3_BUCKET,
     Key: filename,
     ContentType: fileType,
-    // ACL: "public-read", // Make object publicly readable
   });
   return getSignedUrl(s3, command, { expiresIn: 3600 });
 };
@@ -43,7 +42,7 @@ export const handler = async (event) => {
 
     // Generate unique filename
     const fileExtension = fileType.split("/")[1] || "jpg";
-    const fileName = `profile-images/${Date.now()}-${Math.random()
+    const fileName = `${Date.now()}-${Math.random()
       .toString(36)
       .substring(2)}.${fileExtension}`;
 

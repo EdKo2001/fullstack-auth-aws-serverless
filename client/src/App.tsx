@@ -113,7 +113,12 @@ function App() {
           path="/profile"
           element={
             user ? (
-              <ProfilePage user={user} onLogout={handleLogout} />
+              <ProfilePage
+                user={user}
+                token={token}
+                onLogout={handleLogout}
+                onProfileUpdate={(updatedUser) => setUser(updatedUser)}
+              />
             ) : (
               <Navigate to="/" />
             )
