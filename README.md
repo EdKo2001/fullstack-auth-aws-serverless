@@ -1,100 +1,129 @@
-# AuthFlow: Serverless Authentication Platform
+# AuthFlow: Serverless Authentication Platform 🔐
 
-## 🚀 Key Features
+[![AWS Serverless](https://img.shields.io/badge/AWS-Serverless-orange?logo=amazon-aws)](https://aws.amazon.com/serverless/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?logo=typescript)](https://www.typescriptlang.org/)
 
-- User Authentication
-  - Secure JWT-based registration/login
-  - Session management with localStorage
-- Profile Management
-  - Image upload/preview (S3 integration)
-  - Profile data updates (DynamoDB)
-- Cloud Infrastructure
-  - Auto-scaling serverless backend
-  - CI/CD pipelines (CodePipeline/CodeBuild)
-  - Infrastructure-as-Code (CloudFormation)
+## 🌟 Key Features
+
+### 🔑 User Authentication
+
+- JWT-based secure registration/login flow
+- Session management with HTTP-only cookies
+- Refresh token rotation mechanism
+
+### 📸 Profile Management
+
+- Image upload/preview with S3 direct uploads
+- Real-time profile updates (DynamoDB streams)
+- Responsive UI with Material-UI components
+
+### ☁️ Cloud Infrastructure
+
+- Auto-scaling serverless architecture
+- CI/CD pipelines with CodePipeline/CodeBuild
+- Infrastructure-as-Code (CloudFormation)
+- Global CDN distribution via CloudFront
 
 ## 🛠 Tech Stack
 
 **Frontend**  
-React 19 TypeScript Material-UI
+| Technology | Purpose |
+|------------|---------|
+| React 19 | UI Framework |
+| TypeScript | Type Safety |
+| Material-UI | Component Library |
+| Axios | HTTP Client |
 
 **Backend**  
-Node.js 18 AWS Lambda API Gateway DynamoDB S3
+| AWS Service | Purpose |
+|-------------|---------|
+| Lambda | Business Logic |
+| API Gateway | REST API Endpoints |
+| DynamoDB | User Data Storage |
+| S3 | Profile Image Storage |
 
 **DevOps**  
-AWS CloudFormation CodePipeline CodeBuild CloudFront
+| Tool | Purpose |
+|------|---------|
+| CloudFormation | Infrastructure Provisioning |
+| CodePipeline | Deployment Automation |
+| CloudFront | Content Delivery Network |
+| CloudWatch | Monitoring & Logging |
 
-## ⚙️ Setup Guide
+## 🚀 Getting Started
 
-### 1. Prerequisites
+### Prerequisites
 
-- AWS Account
-- Node.js 18.x & npm
-- Git
+- AWS Account with Admin permissions
+- Node.js 18.x & npm 9+
+- Git 2.40+
 
-### 2. Local Development
+### Local Development Setup
 
-```bash
-# Install dependencies
-npm install
-
-# Start dev server
-npm start
-```
-
-Access: http://localhost:3000
+bash
 
 # Clone repository
 
-git clone https://github.com/yourrepo/authflow.git
-cd authflow
+git clone https://github.com/EdKo2001/fullstack-auth-aws-serverless
+cd fullstack-auth-aws-serverless/client
 
 # Install dependencies
 
-npm install
+npm ci # Clean install for consistent dependencies
 
-# Start dev server
+# Configure environment
 
-npm start
+cp .env.example .env.local
 
-Access: http://localhost:3000
+# Update values in .env.local
 
-### 3. Configuration
+# Start development server
 
-Set environment variables:
+npm run dev
+Access the application at: http://localhost:3000
 
-env
+### Environment Variables
 
-# Frontend .env
-
+`.env.local` template:
 REACT_APP_API_ENDPOINT=https://your-api-id.execute-api.region.amazonaws.com/prod
 
-## 🔄 Deployment Pipeline
+## 🔄 Deployment Pipeline Architecture
 
-1. **Source Stage**: GitHub repo monitoring
-2. **Build Stage**:
-   - Frontend: npm run build + S3 upload
-   - Backend: Lambda function packaging
-3. **Deploy Stage**:
+1. **Source Stage**
+
+   - Monitors GitHub repo (main branch)
+   - Triggers on code commits/PR merges
+
+2. **Build Stage**
+
+   - Frontend:
+     - `npm run build`
+
+3. **Deploy Stage**
    - CloudFormation stack updates
-   - Lambda function deployments
+   - Automated CloudFront cache invalidation
 
-## 🔒 Security Features
+## 🔒 Security Implementation
 
-- **Data Protection**
+### Data Protection
+
+- **At Rest**
   - AES-256 encryption (S3/DynamoDB)
-  - SSL/TLS everywhere
-- **Access Control**
-  - IAM least-privilege roles
-  - Cognito Identity Pools (optional)
-- **Credentials**
-  - bcrypt password hashing
-  - JWT expiration (1h access tokens)
+  - KMS-managed encryption keys
+- **In Transit**
+  - TLS 1.2+ enforcement
+  - HSTS headers for web assets
 
----
+### Access Control
 
-**Note**: Before production deployment:
+- IAM Least Privilege Roles
+- API Gateway Resource Policies
+- Cognito User Pool Integration
+- JWT Signature Verification
 
-1. Enable CloudFront distribution for frontend
-2. Configure WAF for API Gateway
-3. Set up CloudWatch monitoring alarms
+### Credential Security
+
+- bcrypt password hashing (cost factor 12)
+- JWT expiration (1h access / 7d refresh tokens)
+- Secrets Manager for sensitive configurations
