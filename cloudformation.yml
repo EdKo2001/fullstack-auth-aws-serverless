@@ -1,0 +1,371 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Serverless Auth Application with Three Lambda Functions and API Gateway
+
+Parameters:
+  GitHubRepo:
+    Type: String
+    Description: GitHub repository URL
+  GitHubBranch:
+    Type: String
+    Default: main
+  GitHubToken:
+    Type: String
+    NoEcho: true
+
+Resources:
+  # Database
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Users
+      AttributeDefinitions:
+        - AttributeName: email
+          AttributeType: S
+      KeySchema:
+        - AttributeName: email
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  # S3 Buckets
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: auth-app-frontend-eduard
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins: ["*"]
+            AllowedMethods: [GET, PUT, POST, DELETE]
+            AllowedHeaders: ["*"]
+
+  UsersPicturesBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: users-pictures-finalproject
+      AccessControl: Private
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins: ["*"]
+            AllowedMethods: [PUT, POST, GET, DELETE]
+            AllowedHeaders: ["*"]
+            MaxAge: 3000
+
+  # CloudFront Distribution
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        DefaultRootObject: index.html
+        Enabled: true
+        HttpVersion: http2
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD]
+          CachedMethods: [GET, HEAD]
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+        Origins:
+          - Id: S3Origin
+            DomainName: !GetAtt FrontendBucket.DomainName
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+
+  # Lambda Functions
+  SignUpLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: SignUpHandler
+      Runtime: nodejs18.x
+      Handler: index.signupHandler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: lambda-code-bucket-finalproject
+        S3Key: signup.zip
+      Environment:
+        Variables:
+          USERS_TABLE: !Ref UsersTable
+
+  LoginLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: LoginHandler
+      Runtime: nodejs18.x
+      Handler: index.loginHandler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: lambda-code-bucket-finalproject
+        S3Key: login.zip
+      Environment:
+        Variables:
+          USERS_TABLE: !Ref UsersTable
+
+  UpdateProfileLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: UpdateProfileHandler
+      Runtime: nodejs18.x
+      Handler: index.updateProfileHandler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: lambda-code-bucket-finalproject
+        S3Key: updateProfileImage.zip
+      Environment:
+        Variables:
+          USERS_TABLE: !Ref UsersTable
+          S3_BUCKET: !Ref UsersPicturesBucket
+
+  # API Gateway
+  AuthApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: AuthAPI
+      Description: Authentication API
+      FailOnWarnings: true
+
+  # API Gateway Resources
+  ApiResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt AuthApi.RootResourceId
+      PathPart: api
+      RestApiId: !Ref AuthApi
+
+  V1Resource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref ApiResource
+      PathPart: v1
+      RestApiId: !Ref AuthApi
+
+  SignUpResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref V1Resource
+      PathPart: signup
+      RestApiId: !Ref AuthApi
+
+  LoginResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref V1Resource
+      PathPart: login
+      RestApiId: !Ref AuthApi
+
+  ProfileImageResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref V1Resource
+      PathPart: updateProfileImage
+      RestApiId: !Ref AuthApi
+
+  # API Gateway Methods
+  SignUpMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref AuthApi
+      ResourceId: !Ref SignUpResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SignUpLambda.Arn}/invocations
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseTemplates:
+              application/json: ""
+        RequestTemplates:
+          application/json: |
+            {
+              "body": $input.json('$'),
+              "headers": {
+                #foreach($header in $input.params().header.keySet())
+                "$header": "$util.escapeJavaScript($input.params().header.get($header))" #if($foreach.hasNext),#end
+                #end
+              }
+            }
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: "Empty"
+
+  LoginMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref AuthApi
+      ResourceId: !Ref LoginResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LoginLambda.Arn}/invocations
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseTemplates:
+              application/json: ""
+        RequestTemplates:
+          application/json: |
+            {
+              "body": $input.json('$'),
+              "headers": {
+                #foreach($header in $input.params().header.keySet())
+                "$header": "$util.escapeJavaScript($input.params().header.get($header))" #if($foreach.hasNext),#end
+                #end
+              }
+            }
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: "Empty"
+
+  ProfileMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref AuthApi
+      ResourceId: !Ref ProfileImageResource
+      HttpMethod: PUT
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UpdateProfileLambda.Arn}/invocations
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseTemplates:
+              application/json: ""
+        RequestTemplates:
+          application/json: |
+            {
+              "body": $input.json('$'),
+              "headers": {
+                #foreach($header in $input.params().header.keySet())
+                "$header": "$util.escapeJavaScript($input.params().header.get($header))" #if($foreach.hasNext),#end
+                #end
+              }
+            }
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: "Empty"
+
+  # API Gateway Deployment
+  ApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - SignUpMethod
+      - LoginMethod
+      - ProfileMethod
+    Properties:
+      RestApiId: !Ref AuthApi
+      StageName: prod
+
+  # IAM Roles
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [lambda.amazonaws.com]
+            Action: ["sts:AssumeRole"]
+      Policies:
+        - PolicyName: lambda-permissions
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:GetItem
+                  - dynamodb:UpdateItem
+                  - s3:PutObject
+                Resource:
+                  - !GetAtt UsersTable.Arn
+                  - !Sub arn:aws:s3:::${UsersPicturesBucket}/*
+                  - !Sub arn:aws:s3:::${FrontendBucket}/*
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:*:*:*
+
+  # CodePipeline
+  FrontendPipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      Name: FrontendDeployment
+      RoleArn: !GetAtt CodePipelineRole.Arn
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: GitHubSource
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Version: 1
+                Provider: GitHub
+              Configuration:
+                Owner: "<your-github-username>"
+                Repo: "<your-repo-name>"
+                Branch: !Ref GitHubBranch
+                OAuthToken: !Ref GitHubToken
+              OutputArtifacts:
+                - Name: FrontendSource
+        - Name: Build
+          Actions:
+            - Name: FrontendBuild
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Version: 1
+                Provider: CodeBuild
+              Configuration:
+                ProjectName: !Ref FrontendBuildProject
+              InputArtifacts:
+                - Name: FrontendSource
+              OutputArtifacts:
+                - Name: FrontendBuild
+
+  FrontendBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: FrontendBuild
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: |
+          version: 0.2
+          phases:
+            install:
+              commands:
+                - cd client
+                - npm install
+            build:
+              commands:
+                - npm run build
+          artifacts:
+            files: '**/*'
+            base-directory: client/build
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:5.0
+
+Outputs:
+  FrontendURL:
+    Value: !GetAtt CloudFrontDistribution.DomainName
+  APIEndpoint:
+    Value: !Sub https://${AuthApi}.execute-api.${AWS::Region}.amazonaws.com/prod
+  UsersPicturesBucketName:
+    Value: !Ref UsersPicturesBucket
