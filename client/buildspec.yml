@@ -2,12 +2,16 @@ version: 0.2
 
 phases:
   install:
+    runtime-versions:
+      nodejs: 18
+  pre_build:
     commands:
+      - cd client
       - npm install
   build:
     commands:
-      - npm run build  # Builds the project
+      - npm run build
 artifacts:
   files:
-    - '**/*'
-  base-directory: build  # Directory with output files (e.g., React app)
+    - "**/*"
+  base-directory: client/build
