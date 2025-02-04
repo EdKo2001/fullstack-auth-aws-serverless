@@ -14,6 +14,10 @@ const S3_BUCKET = process.env.S3_BUCKET_NAME;
 export const handler = async (event) => {
   try {
     const token = event.headers.Authorization.split(" ")[1];
+    if (!token) {
+      return { statusCode: 401, body: "Unauthorized: No token provided" };
+    }
+
     const decoded = jwt.verify(token, SECRET_KEY);
     const email = decoded.email;
 

@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Serverless Auth Application with Three Lambda Functions and API Gateway
+Description: Serverless Auth Application with CodePipeline, Lambda, API Gateway, and S3
 
 Parameters:
   GitHubRepo:
@@ -13,7 +13,7 @@ Parameters:
     NoEcho: true
 
 Resources:
-  # Database
+  # DynamoDB Table
   UsersTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -119,6 +119,21 @@ Resources:
           USERS_TABLE: !Ref UsersTable
           S3_BUCKET: !Ref UsersPicturesBucket
 
+  GetProfileImageLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: GetProfileImageHandler
+      Runtime: nodejs18.x
+      Handler: index.getProfileImageHandler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: lambda-code-bucket-finalproject
+        S3Key: getProfileImage.zip
+      Environment:
+        Variables:
+          USERS_TABLE: !Ref UsersTable
+          S3_BUCKET: !Ref UsersPicturesBucket
+
   # API Gateway
   AuthApi:
     Type: AWS::ApiGateway::RestApi
@@ -161,6 +176,13 @@ Resources:
     Properties:
       ParentId: !Ref V1Resource
       PathPart: updateProfileImage
+      RestApiId: !Ref AuthApi
+
+  GetProfileImageResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref V1Resource
+      PathPart: getProfileImage
       RestApiId: !Ref AuthApi
 
   # API Gateway Methods
@@ -254,6 +276,39 @@ Resources:
           ResponseModels:
             application/json: "Empty"
 
+  GetProfileImageMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref AuthApi
+      ResourceId: !Ref GetProfileImageResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetProfileImageLambda.Arn}/invocations
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseTemplates:
+              application/json: ""
+            ResponseParameters:
+              method.response.header.Content-Type: integration.response.header.Content-Type
+        RequestTemplates:
+          application/json: |
+            {
+              "headers": {
+                #foreach($header in $input.params().header.keySet())
+                "$header": "$util.escapeJavaScript($input.params().header.get($header))" #if($foreach.hasNext),#end
+                #end
+              }
+            }
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Content-Type: true
+          ResponseModels:
+            application/json: "Empty"
+
   # API Gateway Deployment
   ApiDeployment:
     Type: AWS::ApiGateway::Deployment
@@ -261,6 +316,7 @@ Resources:
       - SignUpMethod
       - LoginMethod
       - ProfileMethod
+      - GetProfileImageMethod
     Properties:
       RestApiId: !Ref AuthApi
       StageName: prod
@@ -287,6 +343,7 @@ Resources:
                   - dynamodb:GetItem
                   - dynamodb:UpdateItem
                   - s3:PutObject
+                  - s3:GetObject
                 Resource:
                   - !GetAtt UsersTable.Arn
                   - !Sub arn:aws:s3:::${UsersPicturesBucket}/*
@@ -304,6 +361,9 @@ Resources:
     Properties:
       Name: FrontendDeployment
       RoleArn: !GetAtt CodePipelineRole.Arn
+      ArtifactStore:
+        Type: S3
+        Location: !Ref FrontendBucket
       Stages:
         - Name: Source
           Actions:
@@ -314,8 +374,8 @@ Resources:
                 Version: 1
                 Provider: GitHub
               Configuration:
-                Owner: "<your-github-username>"
-                Repo: "<your-repo-name>"
+                Owner: "EdKo2001"
+                Repo: "fullstack-auth-aws-serverless"
                 Branch: !Ref GitHubBranch
                 OAuthToken: !Ref GitHubToken
               OutputArtifacts:
@@ -335,6 +395,7 @@ Resources:
               OutputArtifacts:
                 - Name: FrontendBuild
 
+  # CodeBuild Project
   FrontendBuildProject:
     Type: AWS::CodeBuild::Project
     Properties:
@@ -361,6 +422,74 @@ Resources:
         Type: LINUX_CONTAINER
         ComputeType: BUILD_GENERAL1_SMALL
         Image: aws/codebuild/standard:5.0
+
+  # IAM Role for CodePipeline
+  CodePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [codepipeline.amazonaws.com]
+            Action: ["sts:AssumeRole"]
+      Policies:
+        - PolicyName: CodePipelinePermissions
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:GetBucketVersioning
+                  - s3:PutObject
+                Resource:
+                  - !Sub arn:aws:s3:::${FrontendBucket}
+                  - !Sub arn:aws:s3:::${FrontendBucket}/*
+              - Effect: Allow
+                Action:
+                  - codebuild:StartBuild
+                  - codebuild:BatchGetBuilds
+                Resource: !GetAtt FrontendBuildProject.Arn
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+
+  # IAM Role for CodeBuild
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [codebuild.amazonaws.com]
+            Action: ["sts:AssumeRole"]
+      Policies:
+        - PolicyName: CodeBuildPermissions
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:PutObject
+                Resource:
+                  - !Sub arn:aws:s3:::${FrontendBucket}
+                  - !Sub arn:aws:s3:::${FrontendBucket}/*
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
 
 Outputs:
   FrontendURL:

@@ -33,7 +33,9 @@ export const handler = async (event) => {
       };
     }
 
-    const token = jwt.sign({ email }, SECRET_KEY, { expiresIn: "1h" });
+    const token = jwt.sign({ email, name: result.Item.name }, SECRET_KEY, {
+      expiresIn: "1h",
+    });
 
     return {
       statusCode: 200,

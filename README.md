@@ -72,21 +72,12 @@ cd fullstack-auth-aws-serverless/client
 
 npm ci # Clean install for consistent dependencies
 
-# Configure environment
-
-cp .env.example .env.local
-
-# Update values in .env.local
+# Update baseURL for API Gateway inside /src/utils/api.ts
 
 # Start development server
 
 npm run dev
 Access the application at: http://localhost:3000
-
-### Environment Variables
-
-`.env.local` template:
-REACT_APP_API_ENDPOINT=https://your-api-id.execute-api.region.amazonaws.com/prod
 
 ## 🔄 Deployment Pipeline Architecture
 
