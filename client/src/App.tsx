@@ -16,8 +16,6 @@ function App() {
   const [token, setToken] = useState("");
   const [loading, setLoading] = useState(true);
 
-  console.log(process.env);
-
   const validateToken = useCallback((storedToken: string) => {
     try {
       const decoded: { exp: number } = jwtDecode(storedToken);
