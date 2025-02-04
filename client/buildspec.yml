@@ -16,7 +16,6 @@ phases:
 
   post_build:
     commands:
-      - aws s3 sync client/build/ s3://auth-app-frontend-eduard --delete # Upload and remove old files
       - aws cloudfront create-invalidation --distribution-id EOR6OXCWBTLWG --paths "/*" # Invalidate CloudFront cache
 
 artifacts:
