@@ -9,9 +9,15 @@ phases:
     commands:
       - cd client # Change to the client directory
       - npm install # Install dependencies in the client folder
+
   build:
     commands:
       - npm run build # Build the project inside the client directory
+
+  post_build:
+    commands:
+      - aws s3 sync build/ s3://auth-app-frontend-eduard --delete # Upload and remove old files
+      - aws cloudfront create-invalidation --distribution-id EOR6OXCWBTLWG --paths "/*" # Invalidate CloudFront cache
 
 artifacts:
   files:
