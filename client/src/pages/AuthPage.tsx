@@ -144,7 +144,7 @@ const AuthPage = ({ onLogin }: AuthPageProps) => {
             variant="h5"
             sx={{ fontWeight: 600, mb: 2 }}
           >
-            {isSignUp ? "Sign Up" : "Login"}
+            {isSignUp ? "Sign Up" : "Login123"}
           </Typography>
 
           <Box component="form" onSubmit={handleSubmit} sx={{ width: "100%" }}>
